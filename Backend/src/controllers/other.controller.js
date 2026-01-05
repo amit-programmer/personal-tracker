@@ -1,4 +1,13 @@
 const { Exercise, Habit } = require('../models/other.model');
+const fs = require('fs');
+const path = require('path');
+const fsp = require('fs').promises;
+
+async function writeFileAtomic(filepath, content) {
+  const tmp = `${filepath}.tmp-${Date.now()}`;
+  await fsp.writeFile(tmp, content, 'utf8');
+  await fsp.rename(tmp, filepath);
+}
 
 /* Exercise controllers */
 async function createExercise(req, res) {
@@ -105,6 +114,7 @@ async function toggleExerciseDone(req, res) {
 /* Habit controllers */
 async function createHabit(req, res) {
   try {
+    console.log('createHabit called, body:', req.body);
     const { name, category, frequency, targetCount, currentStreak, longestStreak, done, reminder } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name is required' });
     const data = { name };
@@ -116,6 +126,7 @@ async function createHabit(req, res) {
     if (typeof done !== 'undefined') data.done = Boolean(done);
     if (reminder) data.reminder = reminder;
     const rec = await Habit.create(data);
+    console.log('Habit.create result:', rec);
     return res.status(201).json({ ok: true, data: rec });
   } catch (err) {
     console.error('Create habit error', err);
@@ -231,6 +242,124 @@ async function addCompletedDate(req, res) {
   }
 }
 
+
+
+// Export exercises between two dates to a text file
+async function exportExercises(req, res) {
+  try {
+    const { start, end, userId } = req.query;
+    let startDate = start ? new Date(start) : new Date(0);
+    let endDate = end ? new Date(end) : new Date();
+    endDate = new Date(endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (startDate > endDate) {
+      const tmp = startDate;
+      startDate = endDate;
+      endDate = tmp;
+    }
+
+    const filter = {};
+    // Exercise schema does not include `userId`; filter only by date range
+    filter.date = { $gte: startDate, $lte: endDate };
+
+    const items = await Exercise.find(filter).sort({ date: -1 });
+
+    const exportDir = path.join(__dirname, '..', '..', 'exports');
+    if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+
+    const lines = items.map((it) => {
+      const day = it.date ? new Date(it.date).toISOString().split('T')[0] : '';
+      const notes = it.notes ? String(it.notes).replace(/\r?\n/g, ' ') : '';
+      return `name: ${it.name || ''} | type: ${it.type || ''} | intensity: ${it.intensity || ''} | date: ${day} | done: ${it.done ? 'yes' : 'no'} | notes: ${notes}`;
+    });
+
+    const filename = `exercise_export_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}_${Date.now()}.txt`;
+    const filepath = path.join(exportDir, filename);
+
+    let content;
+    if (lines.length) content = `Total records: ${lines.length}\n` + lines.join('\n');
+    else content = `Total records: 0\nNo records for range ${startDate.toISOString()} - ${endDate.toISOString()}`;
+
+    await writeFileAtomic(filepath, content);
+
+    const wantDownload = (req.query.download === '1' || req.query.download === 'true') || (req.headers.accept && req.headers.accept.includes('text/html'));
+    if (wantDownload) {
+      return res.download(filepath, filename, (err) => {
+        if (err) {
+          console.error('Error sending exercise export', err);
+          if (!res.headersSent) return res.status(500).json({ ok: false, error: 'Failed to send file' });
+        }
+        try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch (e) { console.error(e); }
+      });
+    }
+
+    return res.json({ ok: true, file: `exports/${filename}`, count: items.length });
+  } catch (err) {
+    console.error('Export exercises error', err);
+    return res.status(500).json({ ok: false, error: 'Failed to export exercises' });
+  }
+}
+
+// Export habits between two dates to a text file
+async function exportHabits(req, res) {
+  try {
+    const { start, end, userId } = req.query;
+    let startDate = start ? new Date(start) : new Date(0);
+    let endDate = end ? new Date(end) : new Date();
+    endDate = new Date(endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (startDate > endDate) {
+      const tmp = startDate;
+      startDate = endDate;
+      endDate = tmp;
+    }
+
+    const filter = {};
+    // Habit schema does not include `userId` — filter only by createdAt range
+    filter.createdAt = { $gte: startDate, $lte: endDate };
+
+    const items = await Habit.find(filter).sort({ createdAt: -1 });
+
+    const exportDir = path.join(__dirname, '..', '..', 'exports');
+    if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+
+    const lines = items.map((it) => {
+      const created = it.createdAt ? new Date(it.createdAt).toISOString().split('T')[0] : '';
+      const completed = Array.isArray(it.completedDates) ? it.completedDates.map(d => (new Date(d)).toISOString().split('T')[0]).join(',') : '';
+      return `name: ${it.name || ''} | category: ${it.category || ''} | frequency: ${it.frequency || ''} | createdAt: ${created} | done: ${it.done ? 'yes' : 'no'} | completedDates: ${completed}`;
+    });
+
+    const filename = `habit_export_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}_${Date.now()}.txt`;
+    const filepath = path.join(exportDir, filename);
+
+    let content;
+    if (lines.length) content = `Total records: ${lines.length}\n` + lines.join('\n');
+    else content = `Total records: 0\nNo records for range ${startDate.toISOString()} - ${endDate.toISOString()}`;
+
+    await writeFileAtomic(filepath, content);
+
+    const wantDownload = (req.query.download === '1' || req.query.download === 'true') || (req.headers.accept && req.headers.accept.includes('text/html'));
+    if (wantDownload) {
+      return res.download(filepath, filename, (err) => {
+        if (err) {
+          console.error('Error sending habit export', err);
+          if (!res.headersSent) return res.status(500).json({ ok: false, error: 'Failed to send file' });
+        }
+        try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch (e) { console.error(e); }
+      });
+    }
+
+    return res.json({ ok: true, file: `exports/${filename}`, count: items.length });
+  } catch (err) {
+    console.error('Export habits error', err);
+    return res.status(500).json({ ok: false, error: 'Failed to export habits' });
+  }
+}
+
+
+
 module.exports = {
   createExercise,
   listExercises,
@@ -245,4 +374,7 @@ module.exports = {
   deleteHabit,
   toggleHabitDone,
   addCompletedDate
+  ,
+  exportExercises,
+  exportHabits
 };

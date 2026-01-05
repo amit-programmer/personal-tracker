@@ -13,6 +13,10 @@ router.post('/', validator.createRules, controller.createTarget);
 // List (filter by date range and optional userId)
 router.get('/', validator.listRules, controller.listTargets);
 
+// Export targets between two dates to a text file
+// Query: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/export', controller.exportRange);
+
 // Get single
 router.get('/:id', controller.getTargetById);
 

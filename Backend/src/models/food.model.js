@@ -30,6 +30,10 @@ const foodSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    calories: {
+        type: String,
+        trim: true
+    },
     notes: {
         type: String,
         trim: true

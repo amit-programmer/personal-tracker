@@ -78,11 +78,15 @@ financeSchema.statics.calculateTotals = async function(startDate, endDate) {
     });
     
     return records.reduce((acc, record) => {
-        acc.totalExpense += record.expense;
-        acc.totalGain += record.gain;
-        acc.netBalance = acc.totalGain - acc.totalExpense;
+        if (record.type === 'expense') {
+            acc.expense += record.rupees || 0;
+        } else if (record.type === 'income') {
+            acc.income += record.rupees || 0;
+        } else if (record.type === 'investment') {
+            acc.investment += record.rupees || 0;
+        }
         return acc;
-    }, { totalExpense: 0, totalGain: 0, netBalance: 0 });
+    }, { income: 0, expense: 0, investment: 0, net: 0 });
 };
 
 const Finance = mongoose.model('finance', financeSchema);

@@ -12,12 +12,14 @@ router.use(authMiddleware)
 // Create
 router.post('/', foodMiddleware.createRules, controller.createItem);
 
-// Create via Notion payload and sync to finance DB
-router.post('/notion', controller.createNotionPage);
-// router.post('/notion', controller.createNotionPage);
+
 
 // List (optional ?category=&start=&end=)
 router.get('/', controller.listItems);
+
+// Export food items between two dates to a text file
+// Query: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/export', controller.exportRange);
 
 // Get single
 router.get('/:id', controller.getItemById);

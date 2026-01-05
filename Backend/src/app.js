@@ -9,12 +9,16 @@ const studyRouter = require('./routes/study.routes')
 const sleepRouter = require('./routes/sleep.routes')
 const targetRouter = require('./routes/target.routes')
 const otherRouter = require('./routes/other.routes')
+const path = require('path')
+
 
 const app = express()
 
-app.use(cors())
+// Allow requests from frontend with credentials (cookies)
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
+app.use(express.static(path.join(__dirname, '../public')));
 
 
 
@@ -24,5 +28,6 @@ app.use('/api/food', foodRouter)
 app.use('/api/study', studyRouter)
 app.use('/api/sleep', sleepRouter)
 app.use('/api/other', otherRouter)
+app.use('/api/target', targetRouter)
 
 module.exports = app

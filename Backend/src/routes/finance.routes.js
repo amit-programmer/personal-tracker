@@ -17,17 +17,10 @@ router.get('/', controller.listRecords);
 // Get totals for a range (same query params as list)
 router.get('/totals', controller.totalsForRange);
 
-// Query Notion finance database directly
-// Notion totals (income/expense/net)
-router.get('/notion/totals', controller.notionTotals);
-// Query Notion finance database directly
-router.get('/notion', controller.queryNotion);
-// Create a page in the Notion finance database. Expect `properties` in body.
-router.post('/notion', controller.createNotionPage);
-// Update an existing Notion page by page id and sync to Mongo
-router.patch('/notion/:pageId', controller.updateNotionPageById);
-// Debug endpoint to inspect notion client shape (requires NOTION_DEBUG=1)
-// router.get('/notion/debug', controller.notionClientInfo);
+// Export records between two dates to a text file
+// Query: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/export', controller.exportRange);
+
 
 // Get single record
 router.get('/:id', controller.getRecordById);

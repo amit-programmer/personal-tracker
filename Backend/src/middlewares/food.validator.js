@@ -18,6 +18,7 @@ const createRules = [
   body('category').optional().isIn(categories).withMessage('Invalid category'),
   body('unit').optional().isIn(units).withMessage('Invalid unit'),
   body('purchaseDate').optional().isISO8601().toDate().withMessage('Invalid purchase date'),
+  body('calories').optional().isString().trim().withMessage('Calories must be a string'),
   body('notes').optional().isString().trim(),
   validate
 ];
@@ -29,6 +30,7 @@ const updateRules = [
   body('category').optional().isIn(categories).withMessage('Invalid category'),
   body('unit').optional().isIn(units).withMessage('Invalid unit'),
   body('purchaseDate').optional().isISO8601().toDate().withMessage('Invalid purchase date'),
+  body('calories').optional().isString().trim().withMessage('Calories must be a string'),
   body('notes').optional().isString().trim(),
   validate
 ];

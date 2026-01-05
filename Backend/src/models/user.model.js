@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
 		password: { type: String, required: true },
 		logo: {
 			type: String,
-			default: "https://4kwallpapers.com/images/wallpapers/anime-girl-girly-2048x1536-9793.jpg",
+			default: "https://tse1.explicit.bing.net/th/id/OIP.L15G2RFltrzUm-clTXjtUQHaEK?rs=1&pid=ImgDetMain&o=7&rm=3",
 			optional: true
 		}
 	},

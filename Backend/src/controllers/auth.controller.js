@@ -44,11 +44,27 @@ async function signup(req, res) {
 			})();
 
 			res.cookie('token', token, {
-				httpOnly: true,
+	
 				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'lax',
 				maxAge: cookieMaxAge
 			});
+
+			
+
+			// Set userId cookie for easy access
+			res.cookie('userId', user._id.toString(), {
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'lax',
+				maxAge: cookieMaxAge
+			});
+
+			res.cookie('logo', user.logo, {
+				
+					secure: process.env.NODE_ENV === 'production',
+					sameSite: 'lax',
+					maxAge: cookieMaxAge
+				});
 
 			const userSafe = { id: user._id, name: user.name, email: user.email, logo: user.logo };
 
@@ -100,13 +116,31 @@ async function login(req, res) {
 			})();
 
 			res.cookie('token', token, {
-				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'lax',
+				maxAge: cookieMaxAge
+			});
+
+				res.cookie('logo', user.logo, {
+					httpOnly: true,
+					secure: process.env.NODE_ENV === 'production',
+					sameSite: 'lax',
+					maxAge: cookieMaxAge
+				});
+
+			// Set userId cookie for easy access
+			res.cookie('userId', user._id.toString(), {
 				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'lax',
 				maxAge: cookieMaxAge
 			});
 
 			const userSafe = { id: user._id, name: user.name, email: user.email, logo: user.logo };
+
+// after login API success
+// localStorage.setItem("token", response.data.token);
+
+
 
 			return res.json({
 				message: 'Login successful',
@@ -119,8 +153,55 @@ async function login(req, res) {
 	}
 }
 
+async function me(req, res) {
+	try {
+		const userId = req.user && req.user.sub
+		if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+		const user = await User.findById(userId).select('-password')
+		if (!user) return res.status(404).json({ error: 'User not found' })
+
+		return res.json({ user })
+	} catch (err) {
+		console.error('Me error', err)
+		return res.status(500).json({ error: 'Failed to fetch user' })
+	}
+}
+
+async function logout(req, res) {
+	try {
+		res.removeCookie('userId')
+		res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' })
+		return res.json({ message: 'Logged out' })
+	} catch (err) {
+		console.error('Logout error', err)
+		return res.status(500).json({ error: 'Failed to logout' })
+	}
+}
+
+async function getUserById(req, res) {
+	try {
+		const { id } = req.params
+		if (!id) {
+			return res.status(400).json({ error: 'User ID is required' })
+		}
+
+		const user = await User.findById(id).select('-password')
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' })
+		}
+
+		return res.json({ user })
+	} catch (err) {
+		console.error('Get user by ID error', err)
+		return res.status(500).json({ error: 'Failed to fetch user' })
+	}
+}
 
 module.exports = {
-    signup,
-    login
+	signup,
+	login,
+	me,
+	logout,
+	getUserById
 }

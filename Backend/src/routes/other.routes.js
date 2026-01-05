@@ -23,6 +23,10 @@ router.post('/exercises', validator.exerciseCreateRules, ctrl.createExercise);
 // - Response: array of Exercise objects (sorted by date desc)
 router.get('/exercises', validator.listRules, ctrl.listExercises);
 
+// Export exercises between two dates to a text file
+// Query: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/exercises/export', ctrl.exportExercises);
+
 // GET /exercises/:id
 // - Purpose: Fetch a single exercise by id
 // - Auth: required
@@ -67,6 +71,9 @@ router.post('/habits', validator.habitCreateRules, ctrl.createHabit);
 // - Response: array of Habit objects
 router.get('/habits', ctrl.listHabits);
 
+// Export habits between two dates to a text file
+// Query: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/habits/export', ctrl.exportHabits);
 // GET /habits/:id
 // - Purpose: Fetch a single habit by id
 // - Auth: required

@@ -1,4 +1,7 @@
 const Target = require('../models/target.model');
+const path = require('path');
+const fs = require('fs');
+const writeFileAtomic = require('write-file-atomic');
 
 async function createTarget(req, res) {
   try {
@@ -106,6 +109,67 @@ async function deleteTarget(req, res) {
   }
 }
 
+// Export targets between two dates to a text file
+async function exportRange(req, res) {
+  try {
+    const { start, end, userId } = req.query;
+    let startDate = start ? new Date(start) : new Date(0);
+    let endDate = end ? new Date(end) : new Date();
+
+    // include full end day
+    endDate = new Date(endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (startDate > endDate) {
+      const tmp = startDate;
+      startDate = endDate;
+      endDate = tmp;
+    }
+
+    const filter = {};
+    if (userId) filter.userId = userId;
+    if (req.user && req.user.sub) filter.userId = req.user.sub;
+    filter.targetDate = { $gte: startDate, $lte: endDate };
+
+    const items = await Target.find(filter).sort({ priority: -1, createdAt: 1 });
+
+    const exportDir = path.join(__dirname, '..', '..', 'exports');
+    if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+
+    const lines = items.map((it) => {
+      const day = it.targetDate ? new Date(it.targetDate).toISOString().split('T')[0] : '';
+      return `id: ${String(it._id)} | title: ${it.title || ''} | date: ${day} | achieved: ${it.isAchieved ? 'yes' : 'no'} | category: ${it.category || ''} | priority: ${it.priority || ''}`;
+    });
+
+    const filename = `target_export_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}_${Date.now()}.txt`;
+    const filepath = path.join(exportDir, filename);
+
+    let content;
+    if (lines.length) content = `Total records: ${lines.length}\n` + lines.join('\n');
+    else content = `Total records: 0\nNo records for range ${startDate.toISOString()} - ${endDate.toISOString()}`;
+
+    await writeFileAtomic(filepath, content);
+
+    const wantDownload = (req.query.download === '1' || req.query.download === 'true') || (req.headers.accept && req.headers.accept.includes('text/html'));
+    if (wantDownload) {
+      return res.download(filepath, filename, (err) => {
+        if (err) {
+          console.error('Error sending target export', err);
+          if (!res.headersSent) return res.status(500).json({ ok: false, error: 'Failed to send file' });
+        }
+        try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch (e) { console.error(e); }
+      });
+    }
+
+    return res.json({ ok: true, file: `exports/${filename}`, count: items.length });
+  } catch (err) {
+    console.error('Export target range error', err);
+    return res.status(500).json({ ok: false, error: 'Failed to export targets' });
+  }
+}
+
+
+
 async function markAsAchieved(req, res) {
   try {
     const { id } = req.params;
@@ -120,11 +184,14 @@ async function markAsAchieved(req, res) {
   }
 }
 
+
+
 module.exports = {
   createTarget,
   listTargets,
   getTargetById,
   updateTarget,
   deleteTarget,
-  markAsAchieved
+  markAsAchieved,
+  exportRange
 };
