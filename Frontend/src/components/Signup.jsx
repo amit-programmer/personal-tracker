@@ -6,7 +6,7 @@ export default function Signup() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState(null);
-    const apiUrl = "http://localhost:3000/api/auth/signup";
+    const apiUrl = "https://personal-tracker-x4kn.onrender.comapi/auth/signup";
     const navigate = useNavigate();
 
     const handleChange = (e) => {

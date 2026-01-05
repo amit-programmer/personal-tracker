@@ -271,7 +271,7 @@ const Food = () => {
             // console.log('Fetching foods with params:', params);
             // console.log('Headers:', headers);
 
-            const res = await axios.get('http://localhost:3000/api/food', {
+            const res = await axios.get('https://personal-tracker-x4kn.onrender.comapi/food', {
                 headers,
                 params
             });
@@ -339,8 +339,8 @@ const Food = () => {
         setError('');
         try {
             const url = editId
-                ? `http://localhost:3000/api/food/${editId}`
-                : 'http://localhost:3000/api/food';
+                ? `https://personal-tracker-x4kn.onrender.comapi/food/${editId}`
+                : 'https://personal-tracker-x4kn.onrender.comapi/food';
 
             const method = editId ? 'PATCH' : 'POST';
             const token = getAuthToken();
@@ -396,7 +396,7 @@ const Food = () => {
                     headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
                 }
 
-                await axios.delete(`http://localhost:3000/api/food/${id}`, {
+                await axios.delete(`https://personal-tracker-x4kn.onrender.comapi/food/${id}`, {
                     headers
                 });
                 fetchFoods();
@@ -428,7 +428,7 @@ const Food = () => {
             if (startDate) params.start = startDate;
             if (endDate) params.end = endDate;
 
-            const res = await axios.get('http://localhost:3000/api/food/export', {
+            const res = await axios.get('https://personal-tracker-x4kn.onrender.comapi/food/export', {
                 headers,
                 params,
                 responseType: 'blob'
