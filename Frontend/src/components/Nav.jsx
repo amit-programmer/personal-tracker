@@ -28,7 +28,7 @@ export default function Nav() {
                     return;
                 }
 
-                const response = await fetch(`https://personal-tracker-x4kn.onrender.comapi/auth/${userID}`, {
+                const response = await fetch(`http://localhost:3000/api/auth/${userID}`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
@@ -59,7 +59,7 @@ export default function Nav() {
 
     const handleLogout = async () => {
         try {
-            await fetch('https://personal-tracker-x4kn.onrender.comapi/auth/logout', {
+            await fetch('http://localhost:3000/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -99,6 +99,36 @@ export default function Nav() {
                                 className="text-white hover:text-blue-400 transition-colors text-sm"
                             >
                                 Food
+                            </button>
+                            <button
+                                onClick={() => navigate('/sleep')}
+                                className="text-white hover:text-blue-400 transition-colors text-sm"
+                            >
+                                Sleep
+                            </button>
+                            <button
+                                onClick={() => navigate('/study')}
+                                className="text-white hover:text-blue-400 transition-colors text-sm"
+                            >
+                                Study
+                            </button>
+                            <button
+                                onClick={() => navigate('/target')}
+                                className="text-white hover:text-blue-400 transition-colors text-sm"
+                            >
+                                Target
+                            </button>
+                            <button
+                                onClick={() => navigate('/exercise')}
+                                className="text-white hover:text-blue-400 transition-colors text-sm"
+                            >
+                                Exercise
+                            </button>
+                            <button
+                                onClick={() => navigate('/habit')}
+                                className="text-white hover:text-blue-400 transition-colors text-sm"
+                            >
+                                Habit
                             </button>
                         </div>
                     )}
@@ -189,9 +219,54 @@ export default function Nav() {
                         >
                             Food
                         </button>
+                        <button
+                            onClick={() => {
+                                navigate('/sleep');
+                                setShowMobileMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            Sleep
+                        </button>
+                        <button
+                            onClick={() => {
+                                navigate('/study');
+                                setShowMobileMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            Study
+                        </button>
+                        <button
+                            onClick={() => {
+                                navigate('/target');
+                                setShowMobileMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            Target
+                        </button>
+                        <button
+                            onClick={() => {
+                                navigate('/habit');
+                                setShowMobileMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            Habit
+                        </button>
+                        <button
+                            onClick={() => {
+                                navigate('/exercise');
+                                setShowMobileMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            Exercise
+                        </button>
                     </div>
                 </div>
             )}
         </nav>
-    );
+    ); 
 }

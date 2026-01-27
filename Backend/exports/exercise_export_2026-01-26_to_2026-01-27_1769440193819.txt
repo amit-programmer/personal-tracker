@@ -1,0 +1,2 @@
+Total records: 1
+name: pull | type: pullup | intensity: low | date: 2026-01-26 | done: no | notes: do 20 rep

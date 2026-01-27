@@ -11,6 +11,8 @@ async function createItem(req, res) {
   try {
     const { foodName, price, quantity, category, unit, purchaseDate, calories, notes } = req.body;
     const data = {
+      // associate item with authenticated user
+      user: req.user && req.user.sub,
       foodName,
       price: typeof price !== 'undefined' ? Number(price) : undefined,
       quantity: typeof quantity !== 'undefined' ? Number(quantity) : undefined,
@@ -61,6 +63,8 @@ async function listItems(req, res) {
   try {
     const { category, start, end } = req.query;
     const filter = {};
+    // always restrict to current user
+    if (req.user && req.user.sub) filter.user = req.user.sub;
     if (category) filter.category = category;
     if (start || end) {
       filter.purchaseDate = {};
@@ -79,7 +83,8 @@ async function listItems(req, res) {
 async function getItemById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Food.findById(id);
+    const userId = req.user && req.user.sub;
+    const item = await Food.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Food item not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -102,8 +107,9 @@ async function updateItem(req, res) {
     if (typeof calories !== 'undefined') updates.calories = calories;
     if (typeof notes !== 'undefined') updates.notes = notes;
 
-    const updated = await Food.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-    if (!updated) return res.status(404).json({ ok: false, error: 'Food item not found' });
+    const userId = req.user && req.user.sub;
+    const updated = await Food.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ ok: false, error: 'Food item not found or not owned by user' });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update Food item error', err);
@@ -114,8 +120,9 @@ async function updateItem(req, res) {
 async function deleteItem(req, res) {
   try {
     const { id } = req.params;
-    const removed = await Food.findByIdAndDelete(id);
-    if (!removed) return res.status(404).json({ ok: false, error: 'Food item not found' });
+    const userId = req.user && req.user.sub;
+    const removed = await Food.findOneAndDelete({ _id: id, user: userId });
+    if (!removed) return res.status(404).json({ ok: false, error: 'Food item not found or not owned by user' });
     return res.json({ ok: true, data: removed });
   } catch (err) {
     console.error('Delete Food item error', err);
@@ -141,7 +148,8 @@ async function exportRange(req, res) {
       endDate = tmp;
     }
 
-    const filter = { purchaseDate: { $gte: startDate, $lte: endDate } };
+    const userId = req.user && req.user.sub;
+    const filter = { purchaseDate: { $gte: startDate, $lte: endDate }, user: userId };
     const items = await Food.find(filter).sort({ purchaseDate: -1 });
 
     // Prepare export dir

@@ -21,8 +21,10 @@ async function createTarget(req, res) {
       priority
     };
 
-    // include userId if present on req.user (optional)
-    if (req.user && req.user.sub) data.userId = req.user.sub;
+    // require authenticated user and attach owner
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    data.userId = userId;
 
     const rec = await Target.create(data);
     return res.status(201).json({ ok: true, data: rec });
@@ -38,10 +40,11 @@ async function createTarget(req, res) {
 
 async function listTargets(req, res) {
   try {
-    const { start, end, userId } = req.query;
+    const { start, end } = req.query;
     const filter = {};
-    if (userId) filter.userId = userId;
-    if (req.user && req.user.sub) filter.userId = req.user.sub;
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.userId = userId;
 
     if (start || end) {
       filter.targetDate = {};
@@ -60,7 +63,9 @@ async function listTargets(req, res) {
 async function getTargetById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Target.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Target.findOne({ _id: id, userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Target not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -82,7 +87,11 @@ async function updateTarget(req, res) {
     if (typeof updates.isAchieved !== 'undefined') updates.isAchieved = Boolean(updates.isAchieved);
     if (updates.achievedAt) updates.achievedAt = new Date(updates.achievedAt);
 
-    const updated = await Target.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const updated = await Target.findOneAndUpdate({ _id: id, userId }, updates, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ ok: false, error: 'Target not found or not owned by user' });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update target error', err);
@@ -98,9 +107,12 @@ async function updateTarget(req, res) {
 async function deleteTarget(req, res) {
   try {
     const { id } = req.params;
-    const existing = await Target.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const existing = await Target.findOne({ _id: id, userId });
     if (!existing) return res.status(404).json({ ok: false, error: 'Target not found' });
-    const removed = await Target.findByIdAndDelete(id);
+    const removed = await Target.findOneAndDelete({ _id: id, userId });
     return res.json({ ok: true, data: removed });
   } catch (err) {
     console.error('Delete target error', err);
@@ -112,7 +124,7 @@ async function deleteTarget(req, res) {
 // Export targets between two dates to a text file
 async function exportRange(req, res) {
   try {
-    const { start, end, userId } = req.query;
+    const { start, end } = req.query;
     let startDate = start ? new Date(start) : new Date(0);
     let endDate = end ? new Date(end) : new Date();
 
@@ -127,8 +139,9 @@ async function exportRange(req, res) {
     }
 
     const filter = {};
-    if (userId) filter.userId = userId;
-    if (req.user && req.user.sub) filter.userId = req.user.sub;
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.userId = userId;
     filter.targetDate = { $gte: startDate, $lte: endDate };
 
     const items = await Target.find(filter).sort({ priority: -1, createdAt: 1 });
@@ -173,7 +186,9 @@ async function exportRange(req, res) {
 async function markAsAchieved(req, res) {
   try {
     const { id } = req.params;
-    const item = await Target.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Target.findOne({ _id: id, userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Target not found' });
     await item.markAsAchieved();
     return res.json({ ok: true, data: item });

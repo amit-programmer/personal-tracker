@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const exerciseSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: [true, 'User is required'],
+        index: true
+    },
     name: {
         type: String,
         required: true,
@@ -8,7 +14,7 @@ const exerciseSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['cardio', 'strength', 'flexibility', 'sports', 'other'],
+        enum: ['cardio', 'strength', 'flexibility', 'sports', 'pushup','pullup','other'],
         default: 'other'
     },
     intensity: {
@@ -35,6 +41,12 @@ const exerciseSchema = new mongoose.Schema({
 });
 
 const habitSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: [true, 'User is required'],
+        index: true
+    },
     name: {
         type: String,
         required: true,
@@ -78,9 +90,9 @@ const habitSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Indexes: avoid referencing non-existent userId field
-exerciseSchema.index({ date: -1 });
-habitSchema.index({ isActive: 1 });
+// Indexes
+exerciseSchema.index({ date: -1, user: 1 });
+habitSchema.index({ createdAt: -1, user: 1 });
 
 // Format `date` in Exercise to YYYY-MM-DD when serialized to JSON
 exerciseSchema.set('toJSON', {

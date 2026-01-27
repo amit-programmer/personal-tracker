@@ -8,6 +8,7 @@ async function createStudy(req, res) {
   try {
     const { subject, time, date, notes } = req.body;
     const data = {
+      user: req.user && req.user.sub,
       subject,
       time: typeof time !== 'undefined' ? Number(time) : undefined,
       date: date ? new Date(date) : undefined,
@@ -36,6 +37,10 @@ async function listStudies(req, res) {
       if (end) filter.date.$lte = new Date(end);
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.user = userId;
+
     const items = await Study.find(filter).sort({ date: -1 });
     return res.json({ ok: true, data: items });
   } catch (err) {
@@ -47,7 +52,10 @@ async function listStudies(req, res) {
 async function getStudyById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Study.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const item = await Study.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Study record not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -66,8 +74,11 @@ async function updateStudy(req, res) {
     if (typeof date !== 'undefined') updates.date = new Date(date);
     if (typeof notes !== 'undefined') updates.notes = notes;
 
-    const updated = await Study.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-    if (!updated) return res.status(404).json({ ok: false, error: 'Study record not found' });
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const updated = await Study.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ ok: false, error: 'Study record not found or not owned by user' });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update study error', err);
@@ -78,7 +89,10 @@ async function updateStudy(req, res) {
 async function deleteStudy(req, res) {
   try {
     const { id } = req.params;
-    const removed = await Study.findByIdAndDelete(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const removed = await Study.findOneAndDelete({ _id: id, user: userId });
     if (!removed) return res.status(404).json({ ok: false, error: 'Study record not found' });
     return res.json({ ok: true, data: removed });
   } catch (err) {
@@ -104,9 +118,13 @@ async function exportRange(req, res) {
       endDate = tmp;
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
     const filter = {};
     if (subject) filter.subject = subject;
     filter.date = { $gte: startDate, $lte: endDate };
+    filter.user = userId;
 
     const items = await Study.find(filter).sort({ date: -1 });
 

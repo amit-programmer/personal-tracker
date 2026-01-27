@@ -18,7 +18,11 @@ async function createSleep(req, res) {
       return res.status(400).json({ ok: false, error: 'Duration must be a non-negative number' });
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
     const data = {
+      user: userId,
       date: date ? new Date(date) : new Date(),
       duration: durNum,
       quality,
@@ -52,6 +56,10 @@ async function listSleeps(req, res) {
       if (end) filter.date.$lte = new Date(end);
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.user = userId;
+
     const items = await Sleep.find(filter).sort({ date: -1 });
     return res.json({ ok: true, data: items });
   } catch (err) {
@@ -63,7 +71,10 @@ async function listSleeps(req, res) {
 async function getSleepById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Sleep.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const item = await Sleep.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Sleep record not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -82,7 +93,11 @@ async function updateSleep(req, res) {
     if (typeof duration !== 'undefined') updates.duration = Number(duration);
     if (typeof quality !== 'undefined') updates.quality = quality;
     if (typeof notes !== 'undefined') updates.notes = notes;
-    const updated = await Sleep.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const updated = await Sleep.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ ok: false, error: 'Sleep record not found or not owned by user' });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update sleep error', err);
@@ -98,9 +113,12 @@ async function updateSleep(req, res) {
 async function deleteSleep(req, res) {
   try {
     const { id } = req.params;
-    const existing = await Sleep.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const existing = await Sleep.findOne({ _id: id, user: userId });
     if (!existing) return res.status(404).json({ ok: false, error: 'Sleep record not found' });
-    const removed = await Sleep.findByIdAndDelete(id);
+    const removed = await Sleep.findOneAndDelete({ _id: id, user: userId });
     return res.json({ ok: true, data: removed });
   } catch (err) {
     console.error('Delete sleep error', err);
@@ -127,7 +145,10 @@ async function exportRange(req, res) {
       endDate = tmp;
     }
 
-    const filter = { date: { $gte: startDate, $lte: endDate } };
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const filter = { date: { $gte: startDate, $lte: endDate }, user: userId };
     const items = await Sleep.find(filter).sort({ date: -1 });
 
     // Prepare export dir

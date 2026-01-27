@@ -2,7 +2,10 @@ const express = require('express');
 const controller = require('../controllers/sleep.controller');
 const sleepMiddleware = require('../middlewares/sleep.validator');
 const router = express.Router();
+const { authMiddleware } = require('../middlewares/auth.middleware');
 
+
+router.use(authMiddleware);
 
 // Create
 router.post('/', sleepMiddleware.createRules, controller.createSleep);

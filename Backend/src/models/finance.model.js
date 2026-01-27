@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const financeSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: true,
+        index: true
+    },
     name: {
         type: String,
         trim: true
@@ -62,20 +68,20 @@ financeSchema.index({ day: -1 });
 financeSchema.index({ createdAt: -1 });
 
 // Static method to find records by date range
-financeSchema.statics.findByDateRange = function(startDate, endDate) {
-    return this.find({
-        day: {
-            $gte: startDate,
-            $lte: endDate
-        }
-    }).sort({ day: -1 });
+// Optionally accept an ownerId to limit results to a specific user
+financeSchema.statics.findByDateRange = function(startDate, endDate, ownerId) {
+    const filter = {
+        day: { $gte: startDate, $lte: endDate }
+    };
+    if (ownerId) filter.user = ownerId;
+    return this.find(filter).sort({ day: -1 });
 };
 
 // Static method to calculate total for a period
-financeSchema.statics.calculateTotals = async function(startDate, endDate) {
-    const records = await this.find({
-        day: { $gte: startDate, $lte: endDate }
-    });
+financeSchema.statics.calculateTotals = async function(startDate, endDate, ownerId) {
+    const filter = { day: { $gte: startDate, $lte: endDate } };
+    if (ownerId) filter.user = ownerId;
+    const records = await this.find(filter);
     
     return records.reduce((acc, record) => {
         if (record.type === 'expense') {

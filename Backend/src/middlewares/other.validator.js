@@ -8,7 +8,8 @@ const validate = (req, res, next) => {
 
 const exerciseCreateRules = [
   body('name').isString().trim().notEmpty().withMessage('Name is required'),
-  body('type').optional().isIn(['cardio', 'strength', 'flexibility', 'sports', 'other']).withMessage('Invalid type'),
+  // allow both general categories and specific sub-types (pushup/pullup)
+  body('type').optional().isIn(['cardio', 'strength', 'flexibility', 'sports', 'pushup', 'pullup', 'other']).withMessage('Invalid type'),
   body('intensity').optional().isIn(['low', 'medium', 'high']).withMessage('Invalid intensity'),
   body('notes').optional().isString().trim().isLength({ max: 1000 }).withMessage('Notes too long'),
   body('done').optional().isBoolean().withMessage('Done must be boolean'),
@@ -18,7 +19,8 @@ const exerciseCreateRules = [
 
 const exerciseUpdateRules = [
   body('name').optional().isString().trim().notEmpty().withMessage('Name must be a non-empty string'),
-  body('type').optional().isIn(['cardio', 'strength', 'flexibility', 'sports', 'other']),
+  // allow specific sub-types too
+  body('type').optional().isIn(['cardio', 'strength', 'flexibility', 'sports', 'pushup', 'pullup', 'other']),
   body('intensity').optional().isIn(['low', 'medium', 'high']),
   body('notes').optional().isString().trim().isLength({ max: 1000 }),
   body('done').optional().isBoolean(),

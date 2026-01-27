@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const foodSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: [true, 'User is required'],
+        index: true
+    },
     foodName: {
         type: String,
         required: [true, 'Food name is required'],

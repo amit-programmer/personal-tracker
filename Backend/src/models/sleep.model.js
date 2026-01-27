@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 
 const sleepSchema = new mongoose.Schema(
     {
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+            required: [true, 'User is required'],
+            index: true
+        },
 
         date: {
             type: Date,
@@ -28,7 +34,7 @@ const sleepSchema = new mongoose.Schema(
 );
 
 // Index for faster queries (no userId field present)
-sleepSchema.index({ date: -1 });
+sleepSchema.index({ date: -1, user: 1 });
 
 // Method to calculate duration (kept for compatibility if sleepTime/wakeTime used elsewhere)
 // Use a synchronous pre-save hook (no `next`) so middleware invocation

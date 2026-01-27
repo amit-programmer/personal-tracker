@@ -122,7 +122,6 @@ async function login(req, res) {
 			});
 
 				res.cookie('logo', user.logo, {
-					httpOnly: true,
 					secure: process.env.NODE_ENV === 'production',
 					sameSite: 'lax',
 					maxAge: cookieMaxAge
@@ -170,9 +169,18 @@ async function me(req, res) {
 
 async function logout(req, res) {
 	try {
-		res.removeCookie('userId')
-		res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' })
-		return res.json({ message: 'Logged out' })
+		const cookieOptions = {
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: process.env.NODE_ENV === 'production'
+		};
+
+		// Clear auth-related cookies safely
+		res.clearCookie('token', cookieOptions);
+		res.clearCookie('userId', { sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+		res.clearCookie('logo', { sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+
+		return res.json({ message: 'Logged out' });
 	} catch (err) {
 		console.error('Logout error', err)
 		return res.status(500).json({ error: 'Failed to logout' })

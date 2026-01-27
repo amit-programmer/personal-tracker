@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const targetSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: [true, 'User is required'],
+        index: true
+    },
     title: {
         type: String,
         required: true,

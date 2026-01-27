@@ -14,7 +14,9 @@ async function createExercise(req, res) {
   try {
     const { name, type, intensity, notes, done, date } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name is required' });
-    const data = { name, type, intensity, notes, done: typeof done !== 'undefined' ? Boolean(done) : false };
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const data = { user: userId, name, type, intensity, notes, done: typeof done !== 'undefined' ? Boolean(done) : false };
     if (date) data.date = new Date(date);
     const rec = await Exercise.create(data);
     return res.status(201).json({ ok: true, data: rec });
@@ -32,6 +34,9 @@ async function listExercises(req, res) {
   try {
     const { start, end, done, type } = req.query;
     const filter = {};
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.user = userId;
     if (typeof done !== 'undefined') filter.done = done === 'true' || done === true;
     if (type) filter.type = type;
     if (start || end) {
@@ -50,7 +55,9 @@ async function listExercises(req, res) {
 async function getExerciseById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Exercise.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Exercise.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Exercise not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -69,7 +76,9 @@ async function updateExercise(req, res) {
     });
     if (updates.date) updates.date = new Date(updates.date);
     if (typeof updates.done !== 'undefined') updates.done = Boolean(updates.done);
-    const updated = await Exercise.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const updated = await Exercise.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update exercise error', err);
@@ -85,9 +94,11 @@ async function updateExercise(req, res) {
 async function deleteExercise(req, res) {
   try {
     const { id } = req.params;
-    const existing = await Exercise.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const existing = await Exercise.findOne({ _id: id, user: userId });
     if (!existing) return res.status(404).json({ ok: false, error: 'Exercise not found' });
-    const removed = await Exercise.findByIdAndDelete(id);
+    const removed = await Exercise.findOneAndDelete({ _id: id, user: userId });
     return res.json({ ok: true, data: removed });
   } catch (err) {
     console.error('Delete exercise error', err);
@@ -99,7 +110,9 @@ async function deleteExercise(req, res) {
 async function toggleExerciseDone(req, res) {
   try {
     const { id } = req.params;
-    const item = await Exercise.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Exercise.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Exercise not found' });
     item.done = !item.done;
     await item.save();
@@ -115,9 +128,11 @@ async function toggleExerciseDone(req, res) {
 async function createHabit(req, res) {
   try {
     console.log('createHabit called, body:', req.body);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     const { name, category, frequency, targetCount, currentStreak, longestStreak, done, reminder } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name is required' });
-    const data = { name };
+    const data = { user: userId, name };
     if (category) data.category = category;
     if (frequency) data.frequency = frequency;
     if (typeof targetCount !== 'undefined') data.targetCount = Number(targetCount);
@@ -140,11 +155,28 @@ async function createHabit(req, res) {
 
 async function listHabits(req, res) {
   try {
-    const { category, frequency, done } = req.query;
+    const { category, frequency, done, name, start, end } = req.query;
     const filter = {};
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    filter.user = userId;
     if (category) filter.category = category;
     if (frequency) filter.frequency = frequency;
     if (typeof done !== 'undefined') filter.done = done === 'true' || done === true;
+
+    // Name search (case-insensitive, partial match)
+    if (name) {
+      try {
+        filter.name = { $regex: name, $options: 'i' };
+      } catch (e) {
+        // If regex fails for any reason, fall back to exact match
+        filter.name = name;
+      }
+    }
+
+    // CreatedAt range filtering if start/end provided
+ 
+
     const items = await Habit.find(filter).sort({ createdAt: -1 });
     return res.json({ ok: true, data: items });
   } catch (err) {
@@ -156,7 +188,9 @@ async function listHabits(req, res) {
 async function getHabitById(req, res) {
   try {
     const { id } = req.params;
-    const item = await Habit.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Habit.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Habit not found' });
     return res.json({ ok: true, data: item });
   } catch (err) {
@@ -176,7 +210,9 @@ async function updateHabit(req, res) {
     if (typeof updates.currentStreak !== 'undefined') updates.currentStreak = Number(updates.currentStreak);
     if (typeof updates.longestStreak !== 'undefined') updates.longestStreak = Number(updates.longestStreak);
     if (typeof updates.done !== 'undefined') updates.done = Boolean(updates.done);
-    const updated = await Habit.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const updated = await Habit.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
     return res.json({ ok: true, data: updated });
   } catch (err) {
     console.error('Update habit error', err);
@@ -192,9 +228,11 @@ async function updateHabit(req, res) {
 async function deleteHabit(req, res) {
   try {
     const { id } = req.params;
-    const existing = await Habit.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const existing = await Habit.findOne({ _id: id, user: userId });
     if (!existing) return res.status(404).json({ ok: false, error: 'Habit not found' });
-    const removed = await Habit.findByIdAndDelete(id);
+    const removed = await Habit.findOneAndDelete({ _id: id, user: userId });
     return res.json({ ok: true, data: removed });
   } catch (err) {
     console.error('Delete habit error', err);
@@ -207,7 +245,10 @@ async function toggleHabitDone(req, res) {
   try {
     const { id } = req.params;
 
-    const item = await Habit.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const item = await Habit.findOne({ _id: id, user: userId });
 
     if (!item) return res.status(404).json({ ok: false, error: 'Habit not found' });
 
@@ -228,7 +269,9 @@ async function addCompletedDate(req, res) {
     const { id } = req.params;
     const { date } = req.body;
     const d = date ? new Date(date) : new Date();
-    const item = await Habit.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const item = await Habit.findOne({ _id: id, user: userId });
     if (!item) return res.status(404).json({ ok: false, error: 'Habit not found' });
     item.completedDates = item.completedDates || [];
     item.completedDates.push(d);
@@ -247,7 +290,7 @@ async function addCompletedDate(req, res) {
 // Export exercises between two dates to a text file
 async function exportExercises(req, res) {
   try {
-    const { start, end, userId } = req.query;
+    const { start, end } = req.query;
     let startDate = start ? new Date(start) : new Date(0);
     let endDate = end ? new Date(end) : new Date();
     endDate = new Date(endDate);
@@ -259,8 +302,10 @@ async function exportExercises(req, res) {
       endDate = tmp;
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     const filter = {};
-    // Exercise schema does not include `userId`; filter only by date range
+    filter.user = userId;
     filter.date = { $gte: startDate, $lte: endDate };
 
     const items = await Exercise.find(filter).sort({ date: -1 });
@@ -304,7 +349,7 @@ async function exportExercises(req, res) {
 // Export habits between two dates to a text file
 async function exportHabits(req, res) {
   try {
-    const { start, end, userId } = req.query;
+    const { start, end } = req.query;
     let startDate = start ? new Date(start) : new Date(0);
     let endDate = end ? new Date(end) : new Date();
     endDate = new Date(endDate);
@@ -316,8 +361,10 @@ async function exportHabits(req, res) {
       endDate = tmp;
     }
 
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     const filter = {};
-    // Habit schema does not include `userId` — filter only by createdAt range
+    filter.user = userId;
     filter.createdAt = { $gte: startDate, $lte: endDate };
 
     const items = await Habit.find(filter).sort({ createdAt: -1 });

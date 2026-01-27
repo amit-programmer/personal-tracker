@@ -27,6 +27,8 @@ async function createRecord(req, res) {
       else if (reqExpense > 0) data.type = 'expenses';
     }
 
+    // attach authenticated user
+    if (req.user && req.user.sub) data.user = req.user.sub;
     const record = await Finance.create(data);
     return res.status(201).json({ ok: true, data: record });
   } catch (err) {
@@ -39,6 +41,8 @@ async function listRecords(req, res) {
   try {
     // support optional date range via query params
     const { start, end } = req.query;
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     if (start || end) {
       let startDate = start ? new Date(start) : new Date(0);
       let endDate = end ? new Date(end) : new Date();
@@ -53,16 +57,16 @@ async function listRecords(req, res) {
       // Use model helper if available, otherwise query Mongo directly
       let records;
       if (typeof Finance.findByDateRange === 'function') {
-        records = await Finance.findByDateRange(startDate, endDate);
+        records = await Finance.findByDateRange(startDate, endDate, userId);
       } else {
-        records = await Finance.find({ day: { $gte: startDate, $lte: endDate } }).sort({ day: -1 });
+        records = await Finance.find({ day: { $gte: startDate, $lte: endDate }, user: userId }).sort({ day: -1 });
       }
 
       return res.json({ ok: true, data: records });
     }
 
     // Default: fetch Mongo records
-    const records = await Finance.find().sort({ day: -1 });
+    const records = await Finance.find({ user: userId }).sort({ day: -1 });
 
     // Return Mongo records only
 
@@ -76,7 +80,9 @@ async function listRecords(req, res) {
 async function getRecordById(req, res) {
   try {
     const { id } = req.params;
-    const record = await Finance.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const record = await Finance.findOne({ _id: id, user: userId });
     if (!record) return res.status(404).json({ ok: false, error: 'Record not found' });
 
 
@@ -106,8 +112,11 @@ async function getRecordById(req, res) {
 
       if (!Object.keys(updates).length) return res.status(400).json({ ok: false, error: 'No valid fields to update' });
 
-      const updated = await Finance.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-      if (!updated) return res.status(404).json({ ok: false, error: 'Record not found' });
+      const userId = req.user && req.user.sub;
+      if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+      const updated = await Finance.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
+      if (!updated) return res.status(404).json({ ok: false, error: 'Record not found or not owned by user' });
       return res.json({ ok: true, data: updated });
     } catch (err) {
       console.error('Update finance record error', err);
@@ -124,13 +133,16 @@ async function deleteRecord(req, res) {
     if (!id) return res.status(400).json({ ok: false, error: 'id required' });
 
     // Find the record first
-    const record = await Finance.findById(id);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const record = await Finance.findOne({ _id: id, user: userId });
     if (!record) return res.status(404).json({ ok: false, error: 'Record not found' });
 
     // No external sync — delete Mongo record only
 
     // Delete Mongo record
-    const removed = await Finance.findByIdAndDelete(id);
+    const removed = await Finance.findOneAndDelete({ _id: id, user: userId });
     if (!removed) return res.status(404).json({ ok: false, error: 'Record not found after delete attempt' });
 
     return res.json({ ok: true, data: removed });
@@ -145,7 +157,9 @@ async function totalsForRange(req, res) {
     const { start, end } = req.query;
     const startDate = start ? new Date(start) : new Date(0);
     const endDate = end ? new Date(end) : new Date();
-    const totals = await Finance.calculateTotals(startDate, endDate);
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    const totals = await Finance.calculateTotals(startDate, endDate, userId);
     return res.json({ ok: true, data: totals });
   } catch (err) {
     console.error('Calculate totals error', err);
@@ -176,11 +190,13 @@ async function exportRange(req, res) {
     }
 
     // Reuse existing helper if available, otherwise query directly
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     let records;
     if (typeof Finance.findByDateRange === 'function') {
-      records = await Finance.findByDateRange(startDate, endDate);
+      records = await Finance.findByDateRange(startDate, endDate, userId);
     } else {
-      records = await Finance.find({ day: { $gte: startDate, $lte: endDate } }).sort({ day: -1 });
+      records = await Finance.find({ day: { $gte: startDate, $lte: endDate }, user: userId }).sort({ day: -1 });
     }
 
     // Prepare export directory

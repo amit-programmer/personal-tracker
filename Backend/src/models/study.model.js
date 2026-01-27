@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const studySchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: [true, 'User is required'],
+        index: true
+    },
     subject: {
         type: String,
         required: true,
@@ -39,6 +45,9 @@ studySchema.set('toJSON', {
         return ret;
     }
 });
+
+    // Index for faster queries including user
+    studySchema.index({ date: -1, user: 1 });
 
 const Study = mongoose.model('study', studySchema);
 
