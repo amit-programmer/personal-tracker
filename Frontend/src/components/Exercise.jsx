@@ -11,7 +11,7 @@ import { Plus, Trash2, Edit2, Download, Calendar } from "lucide-react";
  * (so toggling document.documentElement.classList = 'dark' works).
  */
 
-const API_BASE = "http://localhost:3000/api/other/exercises";
+const API_BASE = "https://personal-tracker-x4kn.onrender.com/api/other/exercises";
 
 function formatDate(d) {
   if (!d) return "";

@@ -24,7 +24,7 @@ export default function Study() {
 }
 
 
-  const API_BASE = "http://localhost:3000/api/study";
+  const API_BASE = "https://personal-tracker-x4kn.onrender.com/api/study";
 
   // Fetch records
   useEffect(() => {

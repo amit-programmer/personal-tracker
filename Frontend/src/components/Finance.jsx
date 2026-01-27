@@ -10,7 +10,7 @@ import { Calendar, Edit2, Trash2 } from "lucide-react";
  * Place in: src/components/Finance.jsx
  */
 
-const API_BASE = "http://localhost:3000/api/finance";
+const API_BASE = "https://personal-tracker-x4kn.onrender.com/api/finance";
 
 // axios client used for all finance API calls; auth header attached by helper
 const apiClient = axios.create({ baseURL: API_BASE });

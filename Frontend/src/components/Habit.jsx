@@ -3,7 +3,7 @@ import { Plus, Trash2, Edit2, Download, Calendar } from "lucide-react";
 import { getAuthToken } from "../middlewares/Auth";
 import Nav from "./Nav";
 
-const API_BASE = "http://localhost:3000/api/other/habits";
+const API_BASE = "https://personal-tracker-x4kn.onrender.com/api/other/habits";
 
 function formatDate(d) {
   if (!d) return "";

@@ -12,7 +12,7 @@ export default function Login() {
         setError("");
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:3000/api/auth/login", {
+            const res = await fetch("https://personal-tracker-x4kn.onrender.com/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

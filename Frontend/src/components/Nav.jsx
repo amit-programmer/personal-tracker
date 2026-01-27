@@ -28,7 +28,7 @@ export default function Nav() {
                     return;
                 }
 
-                const response = await fetch(`http://localhost:3000/api/auth/${userID}`, {
+                const response = await fetch(`https://personal-tracker-x4kn.onrender.com/api/auth/${userID}`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
@@ -59,7 +59,7 @@ export default function Nav() {
 
     const handleLogout = async () => {
         try {
-            await fetch('http://localhost:3000/api/auth/logout', {
+            await fetch('https://personal-tracker-x4kn.onrender.com/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
             });

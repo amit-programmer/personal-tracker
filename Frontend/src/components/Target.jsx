@@ -3,7 +3,7 @@ import { Plus, Trash2, Edit2, Download, Calendar } from "lucide-react";
 
 import Nav from "./Nav";
 
-const API_BASE = "http://localhost:3000/api/target";
+const API_BASE = "https://personal-tracker-x4kn.onrender.com/api/target";
 
 const dark = {
   bg: "#0f1724",
