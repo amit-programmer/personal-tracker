@@ -33,6 +33,7 @@ async function createItem(req, res) {
       const expense = Number(item.price || 0);
       if (expense > 0) {
         const financeData = {
+          user: item.user || (req.user && req.user.sub),
           day: item.purchaseDate || new Date(),
           expense,
           gain: 0,
@@ -41,7 +42,7 @@ async function createItem(req, res) {
           currency: 'INR',
           upi: undefined,
           // description: use category if present otherwise foodName
-          name: item.foodName ,
+          name: item.foodName,
           description: item.notes
         };
         await Finance.create(financeData);

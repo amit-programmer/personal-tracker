@@ -30,4 +30,16 @@ app.use('/api/sleep', sleepRouter)
 app.use('/api/other', otherRouter)
 app.use('/api/target', targetRouter)
 
+// SPA fallback: serve index.html for any non-API route so client-side
+// routing (React/Vite) works when users open /login, /signup, etc.
+// SPA fallback: serve index.html for non-API GET requests so client-side
+// routing (React/Vite) works when users open /login, /signup, etc.
+app.use((req, res, next) => {
+	// Only handle GET requests that accept HTML
+	if (req.method !== 'GET' || !req.accepts || !req.accepts('html')) return next();
+	// Ignore API routes
+	if (req.path.startsWith('/api/')) return next();
+	res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 module.exports = app
